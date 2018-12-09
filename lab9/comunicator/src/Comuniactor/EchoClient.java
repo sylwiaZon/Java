@@ -25,8 +25,7 @@ public class EchoClient extends Application {
     public ArrayList<User> registeredUsers;
     private TextField password, login;
     PrintWriter out;
-    BufferedReader in;
-    Socket echoSocket;
+    ObjectInputStream in ;
     public static void main(String[] args) throws IOException {
         launch(args);
        /* BufferedReader stdIn = new BufferedReader( new InputStreamReader(System.in));
@@ -43,16 +42,18 @@ public class EchoClient extends Application {
 
     @Override
     public void start(Stage stage) throws Exception {
-        echoSocket = null;
+        Socket echoSocket = null;
         out = null;
         in = null;
         try {
             echoSocket = new Socket("localhost", 6666);
-            out = new PrintWriter(echoSocket.getOutputStream(), true); in = new BufferedReader(new InputStreamReader( echoSocket.getInputStream()));
+            out = new PrintWriter(echoSocket.getOutputStream(), true);
+            in = new ObjectInputStream(echoSocket.getInputStream());
         } catch (UnknownHostException e) {
             System.err.println("Don't know about host: localhost."); System.exit(1);
         } catch (IOException e) { System.err.println("Couldn't get I/O for " + "the connection to: localhost."); System.exit(1);
         }
+        System.out.println(echoSocket);
         loggedUser = new User();
         GridPane gridPane = new GridPane();
         gridPane.add(new Text("Login"), 0, 0);
@@ -82,7 +83,7 @@ public class EchoClient extends Application {
             out.println(login.getText());
             out.println(password.getText());
             try {
-                int id = Integer.parseInt(in.readLine());
+                int id = in.readInt();
                 if(id != 0) {
                     loggedUser = new User(id, login.getText(), password.getText());
                 } else {
@@ -95,10 +96,9 @@ public class EchoClient extends Application {
                 wrongUser(stage);
             } else {
                 try {
-                    ObjectInputStream objectInputStream = new ObjectInputStream(echoSocket.getInputStream());
-                    registeredUsers = (ArrayList<User>) objectInputStream.readObject();
+                    registeredUsers = (ArrayList<User>) in.readObject();
                     loggedIn(stage);
-                    objectInputStream.close();
+                    in.close();
                 } catch (IOException e) {
                     e.printStackTrace();
                 } catch (ClassNotFoundException e) {

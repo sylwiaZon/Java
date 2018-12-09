@@ -10,6 +10,7 @@ import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 public class EchoServer extends Application {
@@ -37,6 +38,8 @@ public class EchoServer extends Application {
             System.out.println("Could not listen on port: 6666");
             System.exit(-1);
         }
+        final List<Socket> sockets = new ArrayList<>();
+        int cons = 0;
         while(true) {
             Socket clientSocket = null;
             try {
@@ -45,14 +48,13 @@ public class EchoServer extends Application {
                 System.out.println("Accept failed: 6666");
                 System.exit(-1);
             }
-            Socket finalClientSocket = clientSocket;
-            System.out.println(finalClientSocket);
+            sockets.add(clientSocket);
             new Thread(() -> {
                 try {
-
-                    PrintWriter out = new PrintWriter(finalClientSocket.getOutputStream(), true);
+                    int threadId = sockets.size()-1;
+                    ObjectOutputStream out = new ObjectOutputStream(sockets.get(threadId).getOutputStream());
                     BufferedReader in = new BufferedReader(
-                            new InputStreamReader(finalClientSocket.getInputStream()));
+                            new InputStreamReader(sockets.get(threadId).getInputStream()));
                     String inputLine;
                     User user =  new User();
                     int id = 0;
@@ -63,20 +65,19 @@ public class EchoServer extends Application {
                         if(logged == null){
                         }
                         else {
-                            out.println(logged.id);
+                            out.writeInt(logged.id);
                             id = logged.id;
                         }
                     }
-                    ObjectOutputStream objectOutputStream = new ObjectOutputStream(finalClientSocket.getOutputStream());
                     ArrayList<User> users = dataBase.getUsers();
-                    objectOutputStream.writeObject(users);
+                    System.out.println(users);
+                    out.writeObject(users);
                     while ((inputLine = in.readLine()) != null) {
-                        out.println(inputLine);
+                        out.writeChars(inputLine);
                     }
-                    objectOutputStream.close();
                     out.close();
                     in.close();
-                    finalClientSocket.close();
+                    sockets.get(threadId).close();
                 } catch (Error | IOException error) {
                     error.printStackTrace();
                 }
