@@ -2,6 +2,7 @@ package Comuniactor;
 
 import DataBase.DataBase;
 import DataBase.User;
+import DataBase.Message;
 
 import javafx.application.Application;
 import javafx.stage.Stage;
@@ -10,11 +11,11 @@ import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 public class EchoServer extends Application {
     public DataBase dataBase;
+    User user;
 
     public static void main(String[] args) throws IOException { launch(args);    }
 
@@ -38,8 +39,7 @@ public class EchoServer extends Application {
             System.out.println("Could not listen on port: 6666");
             System.exit(-1);
         }
-        final List<Socket> sockets = new ArrayList<>();
-        int cons = 0;
+        final ArrayList<Socket> sockets = new ArrayList<>();
         while(true) {
             Socket clientSocket = null;
             try {
@@ -52,36 +52,59 @@ public class EchoServer extends Application {
             new Thread(() -> {
                 try {
                     int threadId = sockets.size()-1;
-                    ObjectOutputStream out = new ObjectOutputStream(sockets.get(threadId).getOutputStream());
-                    BufferedReader in = new BufferedReader(
-                            new InputStreamReader(sockets.get(threadId).getInputStream()));
-                    String inputLine;
-                    User user =  new User();
-                    int id = 0;
-                    while(id == 0){
-                        user.setLogin(in.readLine());
-                        user.setPassword(in.readLine());
-                        User logged = dataBase.login(user);
-                        if(logged == null){
-                        }
-                        else {
-                            out.writeInt(logged.id);
-                            id = logged.id;
+                    ObjectOutputStream out = new ObjectOutputStream(sockets.get((threadId)).getOutputStream());
+                    ObjectInputStream in = new ObjectInputStream(sockets.get(threadId).getInputStream());
+                    user =  new User();
+                    String command;
+                    while(true){
+                        command = (String) in.readObject();
+                        switch (command) {
+                            case "/login":
+                                login(out, in);
+                                break;
+                            case "/register":
+                                break;
+                            case "/getUsers":
+                                getUsers(out, in);
+                                break;
+                            case "/getMessages":
+                                getMessages(out,in);
+                                break;
+                            case "/sendMessage":
+                                sendMessage(out,in);
+                                break;
                         }
                     }
-                    ArrayList<User> users = dataBase.getUsers();
-                    System.out.println(users);
-                    out.writeObject(users);
-                    while ((inputLine = in.readLine()) != null) {
-                        out.writeChars(inputLine);
-                    }
-                    out.close();
-                    in.close();
-                    sockets.get(threadId).close();
                 } catch (Error | IOException error) {
                     error.printStackTrace();
+                } catch (ClassNotFoundException e) {
+                    e.printStackTrace();
                 }
             }).start();
         }
+    }
+    private void login(ObjectOutputStream out, ObjectInputStream in) throws IOException, ClassNotFoundException {
+        user.setLogin((String) in.readObject());
+        user.setPassword((String) in.readObject());
+        User logged = dataBase.login(user);
+        if(logged == null){
+            out.writeObject(0);
+        }
+        else {
+            user = logged;
+            out.writeObject(logged.id);
+        }
+    }
+    private void getUsers(ObjectOutputStream out, ObjectInputStream in) throws IOException {
+        ArrayList<User> users = dataBase.getUsers();
+        out.writeObject(users);
+    }
+    private void getMessages(ObjectOutputStream out, ObjectInputStream in) throws IOException {
+        ArrayList<Message> messages = dataBase.getMessages(user.id);
+        out.writeObject(messages);
+    }
+    private void sendMessage(ObjectOutputStream out, ObjectInputStream in) throws IOException, ClassNotFoundException {
+        Message message = (Message)in.readObject();
+        dataBase.sendMessage(message);
     }
 }
