@@ -54,11 +54,16 @@ public class DataBase {
         return user;
     }
 
-    public void register(User user) throws SQLException {
+    public User register(User user) throws SQLException {
         statement = connection.createStatement();
-        statement.executeUpdate(
-                "INSERT INTO Users (login, password)" + "values ('" + user.login + "','" + user.password + "')"
-        );
+        if(validateRegistration(user)) {
+            System.out.println("jest,");
+            statement.executeUpdate(
+                    "INSERT INTO Users (login, password)" + "values ('" + user.login + "','" + user.password + "')"
+            );
+            return login(user);
+        }
+        return null;
     }
 
     public ArrayList<User> getUsers() {
@@ -109,8 +114,9 @@ public class DataBase {
             connect();
             resultSet = null;
             statement = connection.createStatement();
+            System.out.println(user.login);
             resultSet = statement.executeQuery("Select * From Users where login ='" + user.login + "'");
-            if (resultSet == null) {
+            if (!resultSet.next()) {
                 return true;
             }
         } catch (SQLException e) {

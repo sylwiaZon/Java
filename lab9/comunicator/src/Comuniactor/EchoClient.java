@@ -3,7 +3,9 @@ package Comuniactor;
 import DataBase.Message;
 import DataBase.User;
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.collections.ObservableList;
+import javafx.concurrent.Task;
 import javafx.geometry.HPos;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -34,6 +36,7 @@ public class EchoClient extends Application {
     User selectedUser;
     TextField messageToSend;
     ArrayList<Message> messages;
+    ScheduledExecutorService scheduledExecutorService;
     public static void main(String[] args) throws IOException { launch(args);    }
 
     @Override
@@ -54,13 +57,15 @@ public class EchoClient extends Application {
         GridPane gridPane = new GridPane();
         gridPane.add(new Text("Login"), 0, 0);
         login = new TextField();
-        gridPane.add(login, 1,0);
+        gridPane.add(login, 1,0,2,1);
         gridPane.add(new Text("Password"), 0,1);
         password = new TextField();
-        gridPane.add(password, 1,1);
+        gridPane.add(password, 1,1,2,1);
         Button apply = login(stage);
-        GridPane.setHalignment(apply, HPos.RIGHT);
-        gridPane.add(apply, 1,2);
+        GridPane.setHalignment(apply,HPos.RIGHT);
+        gridPane.add(apply, 2,2);
+        Button register = register(stage);
+        gridPane.add(register, 1,2);
         gridPane.setPadding(new Insets(10, 10, 10, 10));
         gridPane.setVgap(10);
         gridPane.setHgap(10);
@@ -73,8 +78,47 @@ public class EchoClient extends Application {
         stage.show();
     }
 
+    private Button register(Stage stage){
+        Button button = new Button("Register!");
+        button.setOnAction(value -> {
+            try {
+                out.writeObject("/register");
+                out.writeObject(login.getText());
+                out.writeObject(password.getText());
+                int id = (int) in.readObject();
+                System.out.println(id);
+                if(id != 0) {
+                    loggedUser = new User(id, login.getText(), password.getText());
+                } else {
+                    loggedUser = null;
+                }
+            } catch (IOException | ClassNotFoundException e) {
+                e.printStackTrace();
+            }
+            if (loggedUser == null) {
+                wrongLogin(stage);
+            } else {
+                logging(stage);
+            }
+        });
+        return button;
+    }
+
+    private void logging(Stage stage) {
+        try {
+            registeredUsers = getRegisteredUsers();
+            out.writeObject("/getMessages");
+            messages = (ArrayList<Message>) in.readObject();
+            loggedIn(stage);
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+    }
+
     private Button login(Stage stage){
-        Button button = new Button("Go!");
+        Button button = new Button("Log in!");
         button.setOnAction(value -> {
             try {
                 out.writeObject("/login");
@@ -94,16 +138,7 @@ public class EchoClient extends Application {
             if (loggedUser == null) {
                 wrongUser(stage);
             } else {
-                try {
-                    registeredUsers = getRegisteredUsers();
-                    out.writeObject("/getMessages");
-                    messages = (ArrayList<Message>) in.readObject();
-                    loggedIn(stage);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                } catch (ClassNotFoundException e) {
-                    e.printStackTrace();
-                }
+                logging(stage);
 
             }
         });
@@ -146,6 +181,29 @@ public class EchoClient extends Application {
         stage.show();
     }
 
+    private void wrongLogin(Stage stage){
+        GridPane gridPane = new GridPane();
+        gridPane.add(new Text("Login already taken!"),0,0,2,1);
+        gridPane.add(new Text("Login"), 1, 1);
+        login = new TextField();
+        gridPane.add(login, 2,1);
+        gridPane.add(new Text("Password"), 1,2);
+        password = new TextField();
+        gridPane.add(password, 2,2);
+        Button register = register(stage);
+        GridPane.setHalignment(register, HPos.RIGHT);
+        gridPane.add(register, 2,3);
+        gridPane.setPadding(new Insets(10, 10, 10, 10));
+        gridPane.setVgap(10);
+        gridPane.setHgap(10);
+        gridPane.setAlignment(Pos.CENTER);
+        gridPane.setPrefWidth(1000);
+        gridPane.setStyle("-fx-background-color: #D4CDCD");
+        Scene scene = new Scene(gridPane,1000,600);
+        stage.setScene(scene);
+        stage.show();
+    }
+
     private void loggedIn(Stage stage){
         Scene scene = new Scene(loggedStage(stage),1000,600);
         stage.setScene(scene);
@@ -159,6 +217,7 @@ public class EchoClient extends Application {
         for(User us: registeredUsers){
             listView.getItems().add(us.login);
         }
+        listView.setPrefHeight(200);
         upperMenu.setPadding(new Insets(10, 10, 10, 10));
         upperMenu.setTop(new Text("Who do you want to talk to?"));
         upperMenu.setCenter(listView);
@@ -178,15 +237,25 @@ public class EchoClient extends Application {
         button.setOnAction(value -> {
             ObservableList selected = listView.getSelectionModel().getSelectedIndices();
             selectedUser = registeredUsers.get((int)selected.get(0));
-            try {
+            /*try {
                 out.writeObject("/getMessages");
                 messages = (ArrayList<Message>) in.readObject();
-            } catch (IOException e) {
+                conversation(stage);
+            } catch (IOException | ClassNotFoundException e) {
                 e.printStackTrace();
-            } catch (ClassNotFoundException e) {
-                e.printStackTrace();
-            }
-            conversation(stage);
+            }*/
+            Runnable runnable = () -> {
+                try {
+                    out.writeObject("/getMessages");
+                    messages = (ArrayList<Message>) in.readObject();
+                    Platform.runLater(() -> conversation(stage));
+                } catch (IOException | ClassNotFoundException e) {
+                    e.printStackTrace();
+                }
+            };
+            scheduledExecutorService = Executors.newScheduledThreadPool(1);
+            scheduledExecutorService.scheduleAtFixedRate(runnable, 0, 5, TimeUnit.SECONDS);
+
         });
         return button;
     }

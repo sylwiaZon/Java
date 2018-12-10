@@ -10,6 +10,7 @@ import javafx.stage.Stage;
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.concurrent.TimeUnit;
 
@@ -63,6 +64,7 @@ public class EchoServer extends Application {
                                 login(out, in);
                                 break;
                             case "/register":
+                                register(out, in);
                                 break;
                             case "/getUsers":
                                 getUsers(out, in);
@@ -75,10 +77,8 @@ public class EchoServer extends Application {
                                 break;
                         }
                     }
-                } catch (Error | IOException error) {
+                } catch (Error | IOException | SQLException | ClassNotFoundException error) {
                     error.printStackTrace();
-                } catch (ClassNotFoundException e) {
-                    e.printStackTrace();
                 }
             }).start();
         }
@@ -87,6 +87,18 @@ public class EchoServer extends Application {
         user.setLogin((String) in.readObject());
         user.setPassword((String) in.readObject());
         User logged = dataBase.login(user);
+        if(logged == null){
+            out.writeObject(0);
+        }
+        else {
+            user = logged;
+            out.writeObject(logged.id);
+        }
+    }
+    private void register(ObjectOutputStream out, ObjectInputStream in) throws IOException, ClassNotFoundException, SQLException {
+        user.setLogin((String) in.readObject());
+        user.setPassword((String) in.readObject());
+        User logged = dataBase.register(user);
         if(logged == null){
             out.writeObject(0);
         }
