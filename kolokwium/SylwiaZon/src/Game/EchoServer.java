@@ -2,6 +2,7 @@ package Game;
 
 import DataBase.DataBase;
 import DataBase.User;
+import DataBase.Game;
 import javafx.application.Application;
 import javafx.stage.Stage;
 
@@ -69,6 +70,8 @@ public class EchoServer extends Application {
                             case "/getUsers":
                                 getUsers(out);
                                 break;
+                            case "/getGames":
+                                getGames(out);
                             case "/newGame":
                                 newGame(out,in);
                                 break;
@@ -92,6 +95,12 @@ public class EchoServer extends Application {
             }).start();
         }
     }
+
+    private void getGames(ObjectOutputStream out) throws IOException {
+        ArrayList<Game> games = dataBase.getGames();
+        out.writeObject(games);
+    }
+
     private void login(ObjectOutputStream out, ObjectInputStream in) throws IOException, ClassNotFoundException {
         user.setLogin((String) in.readObject());
         user.setPassword((String) in.readObject());

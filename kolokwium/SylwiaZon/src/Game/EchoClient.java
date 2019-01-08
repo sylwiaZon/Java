@@ -76,7 +76,7 @@ public class EchoClient extends Application {
         gridPane.setPrefWidth(1000);
         gridPane.setStyle("-fx-background-color: #D4CDCD");
         Scene scene = new Scene(gridPane,1000,600);
-        stage.setTitle("Communicator");
+        stage.setTitle("Game");
         stage.setScene(scene);
         stage.show();
     }
@@ -110,8 +110,10 @@ public class EchoClient extends Application {
     private void logging(Stage stage) {
         try {
             registeredUsers = getRegisteredUsers();
-            out.writeObject("/getMessages");
+            System.out.println(registeredUsers);
+            out.writeObject("/getGames");
             games = (ArrayList<Game>) in.readObject();
+            System.out.println(games);
             loggedIn(stage);
         } catch (IOException e) {
             e.printStackTrace();

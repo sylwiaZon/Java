@@ -11,7 +11,7 @@ public class DataBase {
     public void connect() {
         try {
             Class.forName("com.mysql.cj.jdbc.Driver");
-            connection = DriverManager.getConnection("jdbc:mysql://mysql.agh.edu.pl/zon2", "zon1", "SG6pqk6RrH722zqb");
+            connection = DriverManager.getConnection("jdbc:mysql://mysql.agh.edu.pl/zon2", "zon2", "Tj3pXEJzJThU449B");
         } catch (SQLException ex) {
             System.out.println("SQLException: " + ex.getMessage());
             System.out.println("SQGLState: " + ex.getSQLState());
@@ -57,13 +57,45 @@ public class DataBase {
     public User register(User user) throws SQLException {
         statement = connection.createStatement();
         if (validateRegistration(user)) {
-            System.out.println("jest,");
             statement.executeUpdate(
                     "INSERT INTO Users (login, password)" + "values ('" + user.login + "','" + user.password + "')"
             );
             return login(user);
         }
         return null;
+    }
+    public ArrayList<Game> getGames(){
+        ArrayList<Game> games = new ArrayList<>();
+        try {
+            connect();
+            resultSet = null;
+            statement = connection.createStatement();
+            resultSet = statement.executeQuery("SELECT * FROM Games");
+            games = downloadGames(resultSet);
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return games;
+    }
+
+    private ArrayList<Game> downloadGames(ResultSet resultSet) throws SQLException {
+        ArrayList<Game> games = new ArrayList<>();
+        while(resultSet.next()){
+            Game game = new Game();
+            game.setId(resultSet.getInt("id"));
+            ResultSet res1 = statement.executeQuery("SELECT * from Users where id =  " + resultSet.getInt("User1") + ";");
+            User user1 = new User();
+            user1.setId(res1.getInt("id"));
+            user1.setLogin(res1.getString("login"));
+            game.setUser1(user1);
+            ResultSet res2 = statement.executeQuery("SELECT * from Users where id =  " + resultSet.getInt("User2") + ";");
+            User user2 = new User();
+            user2.setId(res2.getInt("id"));
+            user2.setLogin(res2.getString("login"));
+            game.setUser2(user2);
+            games.add(game);
+        }
+        return games;
     }
 
     public ArrayList<User> getUsers() {

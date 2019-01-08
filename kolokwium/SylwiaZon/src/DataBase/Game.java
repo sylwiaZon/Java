@@ -16,6 +16,9 @@ public class Game implements Serializable {
         user1 = _user1;
         user2 = _user2;
     }
+
+    public Game() {}
+
     public void setWinner(int id){
         result = id;
     }
