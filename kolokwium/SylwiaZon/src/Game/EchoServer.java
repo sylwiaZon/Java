@@ -97,7 +97,7 @@ public class EchoServer extends Application {
     }
 
     private void getGames(ObjectOutputStream out) throws IOException {
-        ArrayList<Game> games = dataBase.getGames();
+        ArrayList<Game> games = dataBase.getGames(user.id);
         out.writeObject(games);
     }
 

@@ -14,6 +14,7 @@ import javafx.scene.control.Button;
 import javafx.scene.control.ListView;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextField;
+import javafx.scene.layout.Border;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.VBox;
@@ -37,8 +38,7 @@ public class EchoClient extends Application {
     ObjectOutputStream out;
     ObjectInputStream in;
     User selectedUser;
-    TextField messageToSend;
-    ArrayList<Game> games;
+    ArrayList<Game> currentGames;
     ScheduledExecutorService scheduledExecutorService;
     public static void main(String[] args) throws IOException { launch(args);    }
 
@@ -112,8 +112,7 @@ public class EchoClient extends Application {
             registeredUsers = getRegisteredUsers();
             System.out.println(registeredUsers);
             out.writeObject("/getGames");
-            games = (ArrayList<Game>) in.readObject();
-            System.out.println(games);
+            currentGames = (ArrayList<Game>) in.readObject();
             loggedIn(stage);
         } catch (IOException e) {
             e.printStackTrace();
@@ -218,22 +217,34 @@ public class EchoClient extends Application {
     private BorderPane loggedStage(Stage stage){
         BorderPane manePage = new BorderPane();
         BorderPane upperMenu = new BorderPane();
-        ListView listView = new ListView();
+        BorderPane lowerMenu = new BorderPane();
+        BorderPane wholeMenu = new BorderPane();
+        ListView users = new ListView();
         for(User us: registeredUsers){
-            listView.getItems().add(us.login);
+            users.getItems().add(us.login);
         }
-        listView.setPrefHeight(200);
+        ListView games = new ListView();
+        for(Game g: currentGames){
+            String game = new String();
+            game = "User1: " + g.user1.login + ", User2: " + g.user2.login;
+            games.getItems().add(game);
+        }
         upperMenu.setPadding(new Insets(10, 10, 10, 10));
-        upperMenu.setTop(new Text("Who do you want to talk to?"));
-        upperMenu.setCenter(listView);
-        Button talk = new Button();
-        //Button talk = selectUser(listView, stage);
-        BorderPane.setAlignment(talk,Pos.CENTER_RIGHT);
-        BorderPane.setMargin(listView, new Insets(10,10,10,10));
-        BorderPane.setMargin(talk,new Insets(10,10,10,10));
-        upperMenu.setRight(talk);
-        listView.setMaxHeight(100);
-        manePage.setTop(upperMenu);
+        upperMenu.setTop(new Text("Who do you want to play with?"));
+        upperMenu.setCenter(users);
+        lowerMenu.setPadding(new Insets(10, 10, 10, 10));
+        lowerMenu.setTop(new Text("Which game do you want to play?"));
+        lowerMenu.setCenter(users);
+        Button play = new Button();//selectUser(listView, stage);
+        BorderPane.setAlignment(play,Pos.CENTER_RIGHT);
+        BorderPane.setMargin(users, new Insets(10,10,10,10));
+        BorderPane.setMargin(play,new Insets(10,10,10,10));
+        upperMenu.setRight(play);
+        users.setMaxHeight(100);
+        games.setMaxHeight(100);
+        wholeMenu.setTop(upperMenu);
+        wholeMenu.setBottom(lowerMenu);
+        manePage.setTop(wholeMenu);
         manePage.setPadding(new Insets(10, 10, 10, 10));
         return  manePage;
     }

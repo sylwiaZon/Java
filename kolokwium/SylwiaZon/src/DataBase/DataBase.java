@@ -64,13 +64,13 @@ public class DataBase {
         }
         return null;
     }
-    public ArrayList<Game> getGames(){
+    public ArrayList<Game> getGames(int user){
         ArrayList<Game> games = new ArrayList<>();
         try {
             connect();
             resultSet = null;
             statement = connection.createStatement();
-            resultSet = statement.executeQuery("SELECT * FROM Games");
+            resultSet = statement.executeQuery("SELECT * FROM Games where User1 = " + user + " or User2 = " + user + ";");
             games = downloadGames(resultSet);
         } catch (SQLException e) {
             e.printStackTrace();
